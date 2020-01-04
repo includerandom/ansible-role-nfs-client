@@ -1,0 +1,75 @@
+---
+- name: Check if data have already been created
+  stat: 
+    path: "{{ data_mnt_full_path }}"
+  register: test_data
+
+- name: Create path for data (APP)
+  file:
+    mode: 0770
+    owner: "{{ data_dir_user }}"
+    group: "{{ data_dir_group }}"
+    recurse: yes
+    path: "{{ data_mnt_full_path }}"
+    state: directory
+  when:
+    - test_data.stat.isdir is undefined
+
+- name: Install NFS packages (Debian)
+  apt:
+    name:
+      - nfs-kernel-server
+      - nfs-common
+      - portmap
+    state: latest
+    install_recommends: no
+    update_cache: yes
+    cache_valid_time: 86400
+  when: ansible_os_family == "Debian"
+
+- name: Install NFS packages (RedHat)
+  yum:
+    name:
+      - nfs-utils
+      - nfs4-acl-tools
+      - rpcbind
+    state: latest
+    update_cache: yes
+  when: ansible_os_family == "RedHat"
+
+- name: Mount data NFS (APP)
+  mount:
+    name: "{{ data_mnt_full_path }}"
+    src: "{{ data_nfs_src_full_path }}"
+    fstype: nfs
+    state: mounted
+    opts: "{{ nfs_mnt_opts }}"
+  notify:
+    - restart nfs service
+
+- name: Start and enable NFS service (Debian 7)
+  service:
+    name: nfs-kernel-server
+    state: started
+    enabled: yes
+  when: 
+    - ansible_os_family == "Debian"
+    - ansible_distribution_major_version < "9"
+
+- name: Start and enable NFS service (Debian 9 and RedHat 7)
+  service:
+    name: nfs-server
+    state: started
+    enabled: yes
+  when: (ansible_os_family == "Debian" and ansible_distribution_major_version >= "9") or (ansible_os_family == "RedHat" >= "7")
+
+- name: Start and enable NFS service (RedHat 6)
+  service:
+    name: nfs
+    state: started
+    enabled: yes
+  when:
+    - ansible_os_family == "RedHat"
+    - ansible_distribution_major_version < "7"
+...
+

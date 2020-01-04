@@ -1,0 +1,4 @@
+---
+nfs_mnt_opts: rw,_netdev,noatime
+...
+

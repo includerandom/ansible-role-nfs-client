@@ -1,0 +1,12 @@
+---
+data_mnt_full_path: /data
+
+data_nfs_src_full_path: nfs-server.example.com:/home/public
+
+data_dir_user: root
+data_dir_group: root
+
+required_vars:
+  - data_mnt_full_path
+  - data_nfs_src
+...
